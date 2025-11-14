@@ -427,6 +427,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 					}
 					RegCloseKey(retKey);
 
+					//结束tdfilefilter服务
+					bool tdfilefilter_status =0;
+					SC_HANDLE sc = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+					SC_HANDLE hFilt = OpenService(sc, "TDFileFilter", SERVICE_STOP);
+					SERVICE_STATUS ss = {};
+					bool bStateFile = KillProcess(GetProcessIDFromName("MasterHelper.exe"),KILL_DEFAULT);
+					if(bStateFile &&ControlService(hFilt, SERVICE_CONTROL_STOP, &ss))
+						Println("结束tdfilefilter服务成功");
+						sMsg += "tdfilefilter服务、";
+						tdfilefilter_status = 1;
+						// SetWindowText(TxOut, "结束tdfilefilter服务成功");
+					CloseServiceHandle(sc);
+					CloseServiceHandle(hFilt);
+
+
 					//清除机房助手对某些网页的封杀（v10.2起，包括poki网和其他一些网站），这一部分手动完成也行
 					LPCSTR path = "C:\\Windows\\System32\\drivers\\etc\\hosts";
 					bool bHandled = false;
@@ -471,7 +486,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 						}
 					}
 					SetWindowText(TxOut, "设置成功");
-					if (cStatus) {
+					if (cStatus || tdfilefilter_status==0) {
 						sMsg.pop_back(), sMsg.pop_back(); sMsg += "。";
 						sMsg += "建议重启资源管理器应用一些功能；若要恢复Tab键，必须注销重新登录。";
 						MessageBox(hwnd, sMsg.c_str(), "说明", MB_OK | MB_ICONINFORMATION | MB_SETFOREGROUND);
